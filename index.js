@@ -18,7 +18,7 @@ client.once('ready', () => {
 const getEndBreakTime = (hour, minute) => {
     const now = new Date();
     const endBreak = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
-    endBreak.setMinutes(endBreak.getMinutes() + 10);
+    endBreak.setMinutes(endBreak.getMinutes() + 15);
     return endBreak;
 };
 
@@ -28,10 +28,24 @@ const getRandomMessage = (messages) => {
 };
 
 // 스케줄링 
-const scheduleBreakReminder = (channel, hour, minute, message) => {
-    schedule.scheduleJob({ hour, minute }, () => {
-        channel.send(message);
-    });
+const scheduleBreakReminder = (channel, hour, minute, message, endBreakMessage) => {
+    const now = new Date();
+    const endBreakTime = getEndBreakTime(hour, minute);
+    
+    // 현재 시간이 스케줄 시간 이후인 경우 스케줄 설정을 건너뜁니다.
+    if (now < endBreakTime) {
+        // 쉬는 시간 시작 알림
+        schedule.scheduleJob({ hour, minute }, () => {
+            channel.send(message);
+        });
+        
+        if(endBreakMessage){
+            // 쉬는 시간 종료 알림
+            schedule.scheduleJob(endBreakTime, () => {
+                channel.send(endBreakMessage);
+            });
+        }
+    }
 };
 
 // 쉬는 시간 알림 
@@ -45,17 +59,17 @@ async function sendBreakReminder() {
         }
 
         const times = [
-            { hour: 9, minute: 50 },
-            { hour: 10, minute: 50 },
-            { hour: 11, minute: 50 },
-            { hour: 13, minute: 50 },
-            { hour: 14, minute: 50 },
-            { hour: 15, minute: 50 },
-            { hour: 16, minute: 50 },
+            { hour: 9, minute: 45 },
+            { hour: 10, minute: 45 },
+            { hour: 11, minute: 45 },
+            { hour: 13, minute: 45 },
+            { hour: 14, minute: 45 },
+            { hour: 15, minute: 45 },
+            { hour: 16, minute: 45 },
         ];
 
         const breakMessages = [
-            `<@&${roleId}> 쉬는 시간입니다! 10분 동안 머리를 식혀봐요^^.:melting_face:`,
+            `<@&${roleId}> 쉬는 시간입니다! 15분 동안 머리를 식혀봐요^^.:melting_face:`,
             `<@&${roleId}> 잠시 쉬어가세요! 잠깐이라도 눈을 감아보세요.:zzz:`,
             `<@&${roleId}> 잠깐의 휴식은 큰 도움이 될 거에요! 스트레칭 한번 해보세요.:muscle:`,
         ];
@@ -67,25 +81,22 @@ async function sendBreakReminder() {
         ];
 
         times.forEach(time => {
-            if (time.hour === 11 && time.minute === 50) {
+            if (time.hour === 11 && time.minute === 45) {
                 scheduleBreakReminder(
                     channel,
                     time.hour,
                     time.minute,
-                    `<@&${roleId}> 점심 시간입니다! 식사 맛있게 하세요 ^^.:poultry_leg: :smile:`
+                    `<@&${roleId}> 점심 시간입니다! 식사 맛있게 하세요 ^^.:poultry_leg: :smile:`,
+                    null
                 );
             } else {
                 scheduleBreakReminder(
                     channel,
                     time.hour,
                     time.minute,
-                    getRandomMessage(breakMessages) // 랜덤으로 쉬는 시간 메시지 선택
+                    getRandomMessage(breakMessages),
+                    getRandomMessage(endBreakMessages)
                 );
-
-                const endBreakTime = getEndBreakTime(time.hour, time.minute);
-                schedule.scheduleJob(endBreakTime, () => {
-                    channel.send(getRandomMessage(endBreakMessages)); // 랜덤으로 쉬는 시간 종료 메시지 선택
-                });
             }
         });
     } catch (error) {
