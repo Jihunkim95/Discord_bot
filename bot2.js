@@ -12,8 +12,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once('ready', () => {
     console.log('척추요정 봇 준비완료');
-    scheduleHourlyImageMessages();  // 1시간마다 무작위 시간에 메시지 전송
-    sendMessageEvery10Seconds();    // 10초마다 메시지 전송
+    scheduleSpecificTimesMessages();  // 특정 시간에 메시지 전송
 });
 
 // 랜덤 이미지 생성 함수
@@ -21,30 +20,39 @@ const getRandomImage = (images) => {
     return images[Math.floor(Math.random() * images.length)];
 };
 
-// 1시간 내에 무작위 시간에 메시지를 전송하는 함수
-const sendRandomImageWithinHour = (channel, hour) => {
-    const randomDelay = Math.floor(Math.random() * 10000); // 0 ~ 10000 밀리초 (무작위 시간)
-    setTimeout(() => {
-        const breakImages = [
-            path.join(__dirname, 'asset', 'disk1.jpeg'),
-            path.join(__dirname, 'asset', 'disk2.jpeg'),
-            path.join(__dirname, 'asset', 'disk3.jpg'),
-            path.join(__dirname, 'asset', 'disk4.jpg')
-        ];
-
-        channel.send({
-            content: `척추 Test! (1시간 내 랜덤)`,
-            files: [getRandomImage(breakImages)]
-        }).then(() => {
-            console.log(`메시지 전송 완료: ${hour}시`);
-        }).catch((error) => {
-            console.error('메시지 전송 중 오류 발생:', error);
-        });
-    }, randomDelay);
+// 랜덤 메시지 생성 함수
+const getRandomMessage = (messages) => {
+    return messages[Math.floor(Math.random() * messages.length)];
 };
 
-// 오전 9시부터 오후 6시까지 1시간마다 무작위로 이미지를 보내는 스케줄 설정
-async function scheduleHourlyImageMessages() {
+// 특정 시간에 이미지를 전송하는 함수
+const sendImageAtSpecificTime = (channel) => {
+    const breakImages = [
+        path.join(__dirname, 'asset', 'disk1.jpeg'),
+        path.join(__dirname, 'asset', 'disk2.jpeg'),
+        path.join(__dirname, 'asset', 'disk3.jpg'),
+        path.join(__dirname, 'asset', 'disk4.jpg')
+    ];
+
+    const Messages = [
+        `<@&${roleId}> 척추요정 등장 ! :star2:`,
+        `<@&${roleId}> 띵동:bell: 안녕하세요 ! 자세보러 왔어요 :laughing: `,
+        `<@&${roleId}> 척추 요정의 하루 미션: 일어나서 척추를 펴고 기지개를 펴세요! :dart: 성공하면 기분도 최고!`,
+        `<@&${roleId}> 오늘도 굽은 척추는 안녕! :man_in_lotus_position: :person_in_lotus_position: 허리를 쫙~ 펴주세요! :laughing: `,
+    ];
+
+    channel.send({
+        content: getRandomMessage(Messages),
+        files: [getRandomImage(breakImages)]
+    }).then(() => {
+        console.log(`메시지 전송 완료: 정해진 시간`);
+    }).catch((error) => {
+        console.error('메시지 전송 중 오류 발생:', error);
+    });
+};
+
+// 오전 10시 30분, 오후 3시 30분에 메시지를 전송하는 스케줄 설정
+async function scheduleSpecificTimesMessages() {
     try {
         const channel = await client.channels.fetch(channelId);
 
@@ -64,14 +72,16 @@ async function scheduleHourlyImageMessages() {
             console.log('봇이 해당 채널에 대한 충분한 권한을 가지고 있습니다.');
         }
 
-        const startHour = 9; // 오전 9시
-        const endHour = 18; // 오후 6시
+        // 오전 10시 30분에 메시지 전송 스케줄 설정
+        schedule.scheduleJob({ hour: 10, minute: 30 }, () => {
+            sendImageAtSpecificTime(channel);
+        });
 
-        for (let hour = startHour; hour < endHour; hour++) {
-            schedule.scheduleJob({ hour, minute: 0 }, () => {
-                sendRandomImageWithinHour(channel, hour);
-            });
-        }
+        // 오후 3시 30분에 메시지 전송 스케줄 설정
+        schedule.scheduleJob({ hour: 15, minute: 30 }, () => {
+            sendImageAtSpecificTime(channel);
+        });
+
     } catch (error) {
         console.error('알림 설정 중 오류 발생:', error);
     }
